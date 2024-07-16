@@ -16,13 +16,13 @@ class Drone:
         rospy.init_node('aruco_detector', anonymous=True)
         self.bridge = CvBridge()
         self.mavros_sub = rospy.Subscriber('/mavros/state', State, self.state_callback)
-        self.image_sub = rospy.Subscriber('/roscam/cam/image_raw', Image, self.image_callback)  # Change topic name here
+        # self.image_sub = rospy.Subscriber('/roscam/cam/image_raw', Image, self.image_callback)  # Change topic name here
         self.odom_sub = rospy.Subscriber("mavros/imu/data", Imu, self.imudata_callback) 
         self.alt_sub = rospy.Subscriber("/mavros/global_position/rel_alt", Float64, self.altitude_callback) 
 
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_100)
-        self.parameters = cv2.aruco.DetectorParameters()
-        self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.parameters) # declare a detector with the selected params and dict
+        # self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_100)
+        # self.parameters = cv2.aruco.DetectorParameters()
+        # self.detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.parameters) # declare a detector with the selected params and dict
         self.vehicle = connect('127.0.0.1:14560', wait_ready=True)  # Replace with your connection string
 
 
@@ -40,19 +40,19 @@ class Drone:
         rospy.loginfo("State Data Received")
         self.State=data
 
-    def image_callback(self, data):
-        cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        height, width, _ = cv_image.shape  # Get frame size
-        #rospy.loginfo("Frame size: {} x {}".format(width, height))
-        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-        # corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.parameters)
-        corners, ids, rejectedImgPoints = self.detector.detectMarkers(gray)
+    # def image_callback(self, data):
+    #     cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+    #     height, width, _ = cv_image.shape  # Get frame size
+    #     #rospy.loginfo("Frame size: {} x {}".format(width, height))
+    #     gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+    #     # corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray, self.aruco_dict, parameters=self.parameters)
+    #     corners, ids, rejectedImgPoints = self.detector.detectMarkers(gray)
         
-        if ids is None:
-            self.flag = 1
+    #     if ids is None:
+    #         self.flag = 1
 
-        if ids is not None:
-            rospy.loginfo("Detected ArUco markers: {}".format(ids))
+    #     if ids is not None:
+    #         rospy.loginfo("Detected ArUco markers: {}".format(ids))
     
     def imudata_callback(self,data):
         # This function will be called whenever new odometry data is received
@@ -108,28 +108,18 @@ class Drone:
         SMOOTH_TAKEOFF_THRUST = 0.6
 
         print("Basic pre-arm checks")
-        # Don't let the user try to arm until autopilot is ready
-        # If you need to disable the arming check,
-        # just comment it with your own responsibility.
-        # while not vehicle.is_armable:
-        #     print(" Waiting for vehicle to initialise...")
-        #     time.sleep(1)
-
-
+        detector.set_mode('GUIDED_NOGPS')        # Copter should arm in GUIDED_NOGPS mode
+        time.sleep(1)
+        while(not self.vehicle.mode== 'GUIDED_NOGPS'):
+            print(" Waiting for drone to enter GUIDED_NOGPS mode")
+            detector.set_mode('GUIDED_NOGPS')        # Copter should arm in GUIDED_NOGPS mode
+            time.sleep(1)
+        print("Vehicle now in GUIDED_NOGPS mode.")
         print("Arming motors")
-        # Copter should arm in GUIDED_NOGPS mode
-
-        # vehicle.mode = VehicleMode("GUIDED_NOGPS")
-        detector.set_mode('GUIDED_NOGPS')
-        # vehicle.armed = True
         detector.arm_drone()
-
-
-        # while not self.state.armed:
-        #     print(" Waiting for arming...")
-        #     detector.arm_drone()
-        #     time.sleep(1)
-
+        while(not detector.State.armed):
+            print(" Waiting for arming...")
+            time.sleep(1)
         print("Taking off!")
 
         thrust = DEFAULT_TAKEOFF_THRUST
@@ -264,7 +254,9 @@ class Drone:
 if __name__ == '__main__':
     try:
         detector = Drone()
-        detector.arm_and_takeoff_nogps(5)
+        detector.arm_and_takeoff_nogps(2)
+        time.sleep(10)
+        detector.set_mode('LAND')
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
