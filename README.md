@@ -8,6 +8,7 @@ This package is tested with ROS 2 Humble version (Ubuntu 22.04) and Gazebo 11.
 ```
 cd ~/git && git clone git@github.com:NovoG93/sjtu_drone.git -b ros2
 cd ~/ros2_ws/src && ln -s ~/git/sjtu_drone
+git clone https://github.com/noshluk2/sjtu_drone.git
 cd .. && rosdep install -r -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO && colcon build --packages-select-regex sjtu*
 ```
 
