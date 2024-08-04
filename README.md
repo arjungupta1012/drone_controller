@@ -1,4 +1,4 @@
-.
+
 # Requirements
 
 This package is tested with ROS 2 Humble version (Ubuntu 22.04) and Gazebo 11.
